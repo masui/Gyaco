@@ -11,7 +11,7 @@
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
             <meta-data android:name="android.appwidget.provider"
-                android:resource="@xml/appwidgetex" />
+                android:resource="@xml/gyaco" />
         </receiver>
 
         <!-- ホームウィジェットを制御するサービス -->

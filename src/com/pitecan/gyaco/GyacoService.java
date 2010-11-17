@@ -6,7 +6,7 @@ import android.content.*;
 import android.os.IBinder;
 import android.widget.RemoteViews;
 
-import android.media.MediaPlayer; /////
+import android.media.MediaPlayer;
 
      
 //ホームウィジェットを制御するサービス
@@ -21,11 +21,11 @@ public class GyacoService extends Service {
     public void onStart(Intent intent,int startId) {
         super.onStart(intent, startId);
         
-	mp = MediaPlayer.create(this, R.raw.cabbage); //////
+	mp = MediaPlayer.create(this, R.raw.cabbage);
 
         //リモートビューの取得
         AppWidgetManager manager=AppWidgetManager.getInstance(this);
-        RemoteViews view=new RemoteViews(getPackageName(),R.layout.appwidget);
+        RemoteViews view=new RemoteViews(getPackageName(),R.layout.gyaco);
         if (ACTION_BTNCLICK.equals(intent.getAction())) {
             btnClicked(view);
         }
@@ -49,6 +49,6 @@ public class GyacoService extends Service {
      
     //ボタンクリック時に呼ばれる
     public void btnClicked(RemoteViews view){
-	mp.start(); //////
+	mp.start(); // 音声再生
     }
 }

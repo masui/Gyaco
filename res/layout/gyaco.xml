@@ -3,7 +3,7 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="fill_parent"
     android:layout_height="wrap_content"
-    android:background="#33000000"
+    android:background="#00000000"
     android:orientation="vertical">
     <Button
         android:id="@+id/button1"

@@ -49,18 +49,6 @@ public class GyacoService extends Service {
      
     //ボタンクリック時に呼ばれる
     public void btnClicked(RemoteViews view){
-        int[] ids={
-            R.drawable.dice1,R.drawable.dice2,R.drawable.dice3,
-            R.drawable.dice4,R.drawable.dice5,R.drawable.dice6};
-        int idx=rand(6);
-        view.setImageViewResource(R.id.imageview1,ids[idx]);
-
 	mp.start(); //////
     }
-    
-    //乱数の取得
-    private static Random rand=new Random();
-    public static int rand(int num) {
-        return (rand.nextInt()>>>1)%num;
-    }    
 }

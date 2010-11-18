@@ -1,4 +1,5 @@
 package com.pitecan.gyaco;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -29,6 +30,7 @@ public class GyacoService extends Service {
         
 	mp = MediaPlayer.create(this, R.raw.cabbage);
 	this.download();
+
         //リモートビューの取得
         AppWidgetManager manager=AppWidgetManager.getInstance(this);
         RemoteViews view=new RemoteViews(getPackageName(),R.layout.gyaco);
@@ -96,7 +98,7 @@ public class GyacoService extends Service {
 				try {
 					Log.v("Download finished", "Download finished");
 					b = d.getContent(Consts.DOWNLOAD_URL);
-				    FileOutputStream fos = new FileOutputStream(Consts.PATH_TO_SAVE);
+				    FileOutputStream fos = openFileOutput(Consts.FILENAME, MODE_PRIVATE);
 				    fos.write(b);
 				    fos.close();
 				} catch (IOException e) {

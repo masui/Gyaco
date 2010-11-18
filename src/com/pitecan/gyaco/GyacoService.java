@@ -22,14 +22,13 @@ public class GyacoService extends Service {
 
     private static MediaPlayer mp;
     private Timer timer;
-    
-    //サービス開始時に呼ばれる
+        //サービス開始時に呼ばれる
     @Override
     public void onStart(Intent intent,int startId) {
         super.onStart(intent, startId);
         
 	mp = MediaPlayer.create(this, R.raw.cabbage);
-
+	this.download();
         //リモートビューの取得
         AppWidgetManager manager=AppWidgetManager.getInstance(this);
         RemoteViews view=new RemoteViews(getPackageName(),R.layout.gyaco);

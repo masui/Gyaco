@@ -1,12 +1,18 @@
 package com.pitecan.gyaco;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.*;
+
 import android.app.*;
 import android.appwidget.AppWidgetManager;
 import android.content.*;
 import android.os.IBinder;
+import android.util.Log;
 import android.widget.RemoteViews;
 
 import android.media.MediaPlayer;
+import android.media.MediaPlayer.OnCompletionListener;
 
      
 //ホームウィジェットを制御するサービス
@@ -15,6 +21,7 @@ public class GyacoService extends Service {
         "com.pitecan.GyacoService.ACTION_BTNCLICK";
 
     private static MediaPlayer mp;
+    private Timer timer;
     
     //サービス開始時に呼ばれる
     @Override
@@ -51,4 +58,57 @@ public class GyacoService extends Service {
     public void btnClicked(RemoteViews view){
 	mp.start(); // 音声再生
     }
+	private void playSound(){
+		FileInputStream fs = null;
+		MediaPlayer mp = new MediaPlayer();
+		mp.setOnCompletionListener(new OnCompletionListener(){
+			@Override
+			public void onCompletion(MediaPlayer mp) {
+			}});
+		try {
+			fs = new FileInputStream(Consts.PATH_TO_SOUND_FILE);
+			if(fs != null){
+				mp.setDataSource(fs.getFD());
+				mp.prepare();
+				mp.start();
+			}
+		} catch(Exception e) {
+			e.printStackTrace();
+		}	
+	}
+	private void downloadSoundData(){
+		//notification();
+		download();
+		if(checkHash()){
+			//
+		}
+	}
+	private void download() {
+		if (timer != null) {
+			timer.cancel();
+		}
+		timer = new Timer();
+		TimerTask timerTask = new TimerTask() {			
+			public void run() {
+			    Downloader d = new Downloader();
+			    d.setConnectTimeout(Consts.CONNECT_TIMEOUT); 
+			    d.setReadTimeout(Consts.READ_TIMEOUT); 
+			    byte[] b;
+				try {
+					Log.v("Download finished", "Download finished");
+					b = d.getContent(Consts.DOWNLOAD_URL);
+				    FileOutputStream fos = new FileOutputStream(Consts.PATH_TO_SAVE);
+				    fos.write(b);
+				    fos.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		};
+		timer.schedule(timerTask, Consts.DOWNLOAD_DELAY);
+	}
+	private boolean checkHash(){
+		return true;
+	}
+
 }

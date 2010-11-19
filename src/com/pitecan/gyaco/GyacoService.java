@@ -31,7 +31,7 @@ public class GyacoService extends Service {
     public void onStart(Intent intent,int startId) {
         super.onStart(intent, startId);
         
-	mp = MediaPlayer.create(this, R.raw.cabbage);
+	// mp = MediaPlayer.create(this, R.raw.cabbage); リソース利用の場合
 	this.download();
 
         //リモートビューの取得
@@ -72,6 +72,7 @@ public class GyacoService extends Service {
 		    public void onCompletion(MediaPlayer mp) {
 		}});
 	try {
+	    // http://sites.google.com/site/tuyano/java/android/07
 	    // fs = new FileInputStream("/data/data/" + this.getPackageName() + "/files/" + Consts.FILENAME);
 	    fs = openFileInput(Consts.FILENAME); // /data/data... と同じことなのだと思う
 	    if(fs != null){

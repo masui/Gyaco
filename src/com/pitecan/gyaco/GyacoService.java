@@ -15,6 +15,8 @@ import android.widget.RemoteViews;
 import android.media.MediaPlayer;
 import android.media.MediaPlayer.OnCompletionListener;
 
+import android.os.Environment;
+
      
 //ホームウィジェットを制御するサービス
 public class GyacoService extends Service {
@@ -58,7 +60,8 @@ public class GyacoService extends Service {
      
     //ボタンクリック時に呼ばれる
     public void btnClicked(RemoteViews view){
-	mp.start(); // 音声再生
+	//mp.start(); // 音声再生
+	playSound();
     }
 
     private void playSound(){
@@ -69,7 +72,13 @@ public class GyacoService extends Service {
 		    public void onCompletion(MediaPlayer mp) {
 		}});
 	try {
-	    fs = new FileInputStream(Consts.PATH_TO_SOUND_FILE);
+	    boolean mounted = Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED);
+	    // Log.v("Gyaco", "mounted="+mounted);
+	    // Log.v("Gyaco", "mountedDir="+Environment.getExternalStorageDirectory());
+
+	    // fs = new FileInputStream(Consts.PATH_TO_SOUND_FILE); 
+	    // fs = new FileInputStream("/data/data/" + this.getPackageName() + "/files/lens.mp3");
+	    fs = openFileInput(Consts.FILENAME);
 	    if(fs != null){
 		mp.setDataSource(fs.getFD());
 		mp.prepare();
@@ -100,7 +109,7 @@ public class GyacoService extends Service {
 		    d.setReadTimeout(Consts.READ_TIMEOUT); 
 		    byte[] b;
 		    try {
-			Log.v("Download finished", "Download finished");
+			Log.v("Gyaco", "Download finished");
 			b = d.getContent(Consts.DOWNLOAD_URL);
 			FileOutputStream fos = openFileOutput(Consts.FILENAME, MODE_PRIVATE);
 			fos.write(b);

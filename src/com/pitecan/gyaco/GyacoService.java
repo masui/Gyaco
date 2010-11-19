@@ -72,13 +72,8 @@ public class GyacoService extends Service {
 		    public void onCompletion(MediaPlayer mp) {
 		}});
 	try {
-	    boolean mounted = Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED);
-	    // Log.v("Gyaco", "mounted="+mounted);
-	    // Log.v("Gyaco", "mountedDir="+Environment.getExternalStorageDirectory());
-
-	    // fs = new FileInputStream(Consts.PATH_TO_SOUND_FILE); 
-	    // fs = new FileInputStream("/data/data/" + this.getPackageName() + "/files/lens.mp3");
-	    fs = openFileInput(Consts.FILENAME);
+	    // fs = new FileInputStream("/data/data/" + this.getPackageName() + "/files/" + Consts.FILENAME);
+	    fs = openFileInput(Consts.FILENAME); // /data/data... と同じことなのだと思う
 	    if(fs != null){
 		mp.setDataSource(fs.getFD());
 		mp.prepare();

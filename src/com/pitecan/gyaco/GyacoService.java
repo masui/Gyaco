@@ -105,8 +105,8 @@ public class GyacoService extends Service {
 		    d.setReadTimeout(Consts.READ_TIMEOUT); 
 		    byte[] b;
 		    try {
-			Log.v("Gyaco", "Download finished");
 			b = d.getContent(Consts.DOWNLOAD_URL);
+			Log.v("Gyaco", "Download finished");
 			FileOutputStream fos = openFileOutput(Consts.FILENAME, MODE_PRIVATE);
 			fos.write(b);
 			fos.close();

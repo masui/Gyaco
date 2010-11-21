@@ -5,6 +5,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.*;
 
+import org.apache.http.client.HttpClient;
+import org.apache.http.impl.client.DefaultHttpClient;
+
 import android.app.*;
 import android.appwidget.AppWidgetManager;
 import android.content.*;
@@ -27,12 +30,13 @@ public class GyacoService extends Service {
 		"com.pitecan.GyacoService.ACTION_BTNCLICK";
 
 	private static MediaPlayer mp;
+	private long lastmodified = 0;
 
 	//サービス開始時に呼ばれる
 	@Override
 	public void onStart(Intent intent,int startId) {
 		super.onStart(intent, startId);
-
+		Log.v("Gyaco", "Widget onStart");
 		//リモートビューの取得
 		AppWidgetManager manager=AppWidgetManager.getInstance(this);
 		RemoteViews view=new RemoteViews(getPackageName(),R.layout.gyaco);
@@ -57,6 +61,7 @@ public class GyacoService extends Service {
 	}
 
 	public void btnClicked(RemoteViews view){
+		Log.v("Gyaco", "Widget onClick");
 		downloadAndPlay();
 	}
 
@@ -80,9 +85,8 @@ public class GyacoService extends Service {
 	}
 
 	private void downloadAndPlay(){
-		//notification();
 		if(checkConnectionStatus()){
-			if(checkHash()){
+			if(isDataObsolete()){
 				download();
 			}
 		}
@@ -114,7 +118,19 @@ public class GyacoService extends Service {
 		return false;
 	}
 
-	private boolean checkHash(){
-		return true;
+	private boolean isDataObsolete() {
+		Downloader d = new Downloader();
+		d.setConnectTimeout(Consts.CONNECT_TIMEOUT); 
+		d.setReadTimeout(Consts.READ_TIMEOUT);
+		long date = 0;
+		try {
+			date  = d.getLastModified(Consts.DOWNLOAD_URL);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		if(date != this.lastmodified){
+			return true;
+		}
+		return false;
 	}
 }

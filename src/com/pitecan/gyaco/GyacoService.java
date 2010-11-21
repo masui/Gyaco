@@ -17,6 +17,7 @@ import android.net.wifi.WifiManager;
 import android.os.IBinder;
 import android.util.Log;
 import android.widget.RemoteViews;
+import android.widget.Toast;
 
 import android.media.MediaPlayer;
 import android.media.MediaPlayer.OnCompletionListener;
@@ -31,6 +32,7 @@ public class GyacoService extends Service {
 
 	private static MediaPlayer mp;
 	private long lastmodified = 0;
+	private Toast toast;
 
 	//サービス開始時に呼ばれる
 	@Override
@@ -71,6 +73,7 @@ public class GyacoService extends Service {
 		mp.setOnCompletionListener(new OnCompletionListener(){
 			@Override
 			public void onCompletion(MediaPlayer mp) {
+				toast.cancel();
 			}});
 		try {
 			fs = openFileInput(Consts.FILENAME);
@@ -85,6 +88,8 @@ public class GyacoService extends Service {
 	}
 
 	private void downloadAndPlay(){
+		toast = Toast.makeText(this, "Playing...", Toast.LENGTH_LONG);
+		toast.show();
 		if(checkConnectionStatus()){
 			if(isDataObsolete()){
 				download();
@@ -92,7 +97,7 @@ public class GyacoService extends Service {
 		}
 		playSound();
 	}
-
+	
 	private void download() {
 		Downloader d = new Downloader();
 		d.setConnectTimeout(Consts.CONNECT_TIMEOUT); 

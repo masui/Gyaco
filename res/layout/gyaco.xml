@@ -1,13 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical"
+    android:orientation="horizontal"
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
     >
 
-　　<ImageView android:id="@+id/button1"
-        android:layout_width="fill_parent"
+    <ImageView android:id="@+id/button1"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:src="@drawable/disp"
+        android:src="@drawable/disp1"
+        />
+    <ImageView android:id="@+id/button2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/disp2"
+        />
+    <ImageView android:id="@+id/button3"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/disp3"
         />
 </LinearLayout>

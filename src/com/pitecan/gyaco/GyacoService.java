@@ -22,6 +22,7 @@ import android.net.wifi.WifiManager;
 import android.os.IBinder;
 import android.util.Log;
 import android.widget.RemoteViews;
+import android.widget.Toast;
 
 import android.os.Handler;
 import android.media.MediaPlayer;

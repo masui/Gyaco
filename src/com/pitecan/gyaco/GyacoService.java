@@ -34,6 +34,7 @@ public class GyacoService extends Service {
     private static MediaPlayer player;
     private static MediaRecorder recorder;
     private static FileInputStream playerStream = null;
+    private static FileOutputStream recorderStream = null;
 
     //サービス開始時に呼ばれる
     @Override
@@ -47,37 +48,38 @@ public class GyacoService extends Service {
 	AppWidgetManager manager=AppWidgetManager.getInstance(this);
 	RemoteViews view=new RemoteViews(getPackageName(),R.layout.gyaco);
 
-	if (ACTION_PLAY.equals(intent.getAction())) {
+	String action = intent.getAction();
+	if (ACTION_PLAY.equals(action)){
 	    Log.v("Gyaco", "PlayButton Click");
-	    playButton(view);
+	    playButton();
 	}
-	if (ACTION_REC.equals(intent.getAction())) {
+	if (ACTION_REC.equals(action)){
 	    Log.v("Gyaco", "RecButton Click");
-	    recButton(view);
+	    recButton();
 	}
 	
-	//button1とボタンクリックイベントの関連付け
-	Intent newintent1=new Intent();
-	newintent1.setAction(ACTION_PLAY);
-	PendingIntent pending1=PendingIntent.getService(this,0,newintent1,0);
-	view.setOnClickPendingIntent(R.id.button1,pending1);
+	// playボタンクリックイベントの関連付け
+	Intent playIntent=new Intent();
+	playIntent.setAction(ACTION_PLAY);
+	PendingIntent playPendingIntent=PendingIntent.getService(this,0,playIntent,0);
+	view.setOnClickPendingIntent(R.id.playbutton,playPendingIntent);
 	
-	//button2とボタンクリックイベントの関連付け
-	Intent newintent2=new Intent();
-	newintent2.setAction(ACTION_REC);
-	PendingIntent pending2=PendingIntent.getService(this,0,newintent2,0);
-	view.setOnClickPendingIntent(R.id.button2,pending2);
+	// recボタンクリックイベントの関連付け
+	Intent recIntent=new Intent();
+	recIntent.setAction(ACTION_REC);
+	PendingIntent recPendingIntent=PendingIntent.getService(this,0,recIntent,0);
+	view.setOnClickPendingIntent(R.id.recbutton,recPendingIntent);
 
 	//
-	// button3とボタンクリックイベントの関連付け
+	// webButton とボタンクリックイベントの関連付け
 	// 普通のアプリケーションからIntentで別アプリケーションを呼び出す方法は使えない。
 	// 以下を参照
 	// https://groups.google.com/group/android-sdk-japan/browse_thread/thread/fd069d05bcdfd2b3?hl=ja
 	// http://www.developer.com/ws/article.php/10927_3837531_1/Handling-User-Interaction-with-Android-App-Widgets.htm
 	//
-	Intent newintent3 = new Intent(Intent.ACTION_VIEW, Uri.parse("http://pitecan.com/"));
-	PendingIntent pending3 = PendingIntent.getActivity(this, 0, newintent3, 0);
-	view.setOnClickPendingIntent(R.id.button3, pending3); 
+	Intent webIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("http://pitecan.com/"));
+	PendingIntent webPendingIntent = PendingIntent.getActivity(this, 0, webIntent, 0);
+	view.setOnClickPendingIntent(R.id.webbutton, webPendingIntent); 
 	
 	//ホームウィジェットの更新
 	ComponentName widget=new ComponentName(this,Gyaco.class);
@@ -89,7 +91,7 @@ public class GyacoService extends Service {
 	return null;
     }
     
-    public void playButton(RemoteViews view){
+    public void playButton(){
 	//
 	// ネットが使える環境では新しい音声があればダウンロードする
 	//
@@ -102,7 +104,7 @@ public class GyacoService extends Service {
     private Handler handler = new Handler();
     private Runnable stop;
 
-    public void recButton(RemoteViews view){
+    public void recButton(){
 	Log.v("Gyaco", "Widget onClick");
 	try{
 	    recorder = new MediaRecorder();
@@ -118,9 +120,8 @@ public class GyacoService extends Service {
 	    // String filePath = "/data/data/" + this.getPackageName() + "/files/" + Consts.LOCAL_3GP
 	    // recorder.setOutputFile(filePath);
 	    //
-	    FileOutputStream os = openFileOutput(Consts.LOCAL_3GP, MODE_PRIVATE);
-	    recorder.setOutputFile(os.getFD());
-
+	    recorderStream = openFileOutput(Consts.LOCAL_3GP, MODE_PRIVATE);
+	    recorder.setOutputFile(recorderStream.getFD());
 	    recorder.prepare();
 	    recorder.start();
 	    Log.v("Gyaco","record start");
@@ -133,8 +134,9 @@ public class GyacoService extends Service {
 			    recorder.stop();
 			    recorder.release();
 			    recorder = null;
+			    recorderStream.close();
 			    try{
-				upload_local(Consts.LOCAL_3GP, Consts.UPLOAD_URL);
+				uploadLocal(Consts.LOCAL_3GP, Consts.UPLOAD_URL);
 			    }
 			    catch(Exception e){
 				e.printStackTrace();
@@ -147,7 +149,7 @@ public class GyacoService extends Service {
 			}
 		    }
 		};
-	    handler.postDelayed(stop, 2000);
+	    handler.postDelayed(stop, 2000); // 2秒後に停止
 
 	}
 	catch(Exception e){
@@ -156,7 +158,7 @@ public class GyacoService extends Service {
 	}
     }
 
-    public void upload_local(String localfile, String uri){
+    public void uploadLocal(String localfile, String uri){
         try{
 	    //
 	    // android.context.Context の getFileStreamPath() は
@@ -199,6 +201,7 @@ public class GyacoService extends Service {
 			playerStream.close();
 		    }
 		    catch(Exception e){
+			e.printStackTrace();
 		    }
 		}
 	    });

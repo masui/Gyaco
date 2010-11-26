@@ -1,8 +1,5 @@
 package com.pitecan.gyaco;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
 
 import org.apache.http.HttpResponse;
@@ -14,23 +11,20 @@ import org.apache.http.entity.mime.content.FileBody;
 import org.apache.http.impl.client.DefaultHttpClient;
 
 import android.app.*;
-import android.appwidget.AppWidgetManager;
 import android.content.*;
+import android.appwidget.AppWidgetManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.wifi.WifiManager;
 import android.net.Uri;
-import android.os.IBinder;
 import android.util.Log;
 import android.widget.RemoteViews;
-
 import android.os.Handler;
+import android.os.IBinder;
+
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.media.MediaPlayer.OnCompletionListener;
-
-import android.os.Environment;
-
 
 //ホームウィジェットを制御するサービス
 public class GyacoService extends Service {
@@ -39,7 +33,7 @@ public class GyacoService extends Service {
 
     private static MediaPlayer player;
     private static MediaRecorder recorder;
-    private long lastmodified = 0;
+    private static FileInputStream playerStream = null;
 
     //サービス開始時に呼ばれる
     @Override
@@ -48,16 +42,18 @@ public class GyacoService extends Service {
 	Log.v("Gyaco", "Widget onStart");
 
 	//
-	// Widgetは「リモートビュー」を利用する
+	// Widgetは「リモートビュー」を使うことになっているらしい
 	//
 	AppWidgetManager manager=AppWidgetManager.getInstance(this);
 	RemoteViews view=new RemoteViews(getPackageName(),R.layout.gyaco);
 
 	if (ACTION_PLAY.equals(intent.getAction())) {
-	    play(view);
+	    Log.v("Gyaco", "PlayButton Click");
+	    playButton(view);
 	}
 	if (ACTION_REC.equals(intent.getAction())) {
-	    rec(view);
+	    Log.v("Gyaco", "RecButton Click");
+	    recButton(view);
 	}
 	
 	//button1とボタンクリックイベントの関連付け
@@ -71,9 +67,11 @@ public class GyacoService extends Service {
 	newintent2.setAction(ACTION_REC);
 	PendingIntent pending2=PendingIntent.getService(this,0,newintent2,0);
 	view.setOnClickPendingIntent(R.id.button2,pending2);
-	
+
+	//
 	// button3とボタンクリックイベントの関連付け
-	// ブラウザを呼び出す
+	// 普通のアプリケーションからIntentで別アプリケーションを呼び出す方法は使えない。
+	// 以下を参照
 	// https://groups.google.com/group/android-sdk-japan/browse_thread/thread/fd069d05bcdfd2b3?hl=ja
 	// http://www.developer.com/ws/article.php/10927_3837531_1/Handling-User-Interaction-with-Android-App-Widgets.htm
 	//
@@ -91,15 +89,20 @@ public class GyacoService extends Service {
 	return null;
     }
     
-    public void play(RemoteViews view){
-	Log.v("Gyaco", "Widget onClick");
-	downloadAndPlay();
+    public void playButton(RemoteViews view){
+	//
+	// ネットが使える環境では新しい音声があればダウンロードする
+	//
+	if(networkIsAvailable()){
+	    downloadIfDataIsObsolete(Consts.DOWNLOAD_MP3,Consts.LOCAL_MP3);
+	}
+	play(Consts.LOCAL_MP3);
     }
 
     private Handler handler = new Handler();
     private Runnable stop;
 
-    public void rec(RemoteViews view){
+    public void recButton(RemoteViews view){
 	Log.v("Gyaco", "Widget onClick");
 	try{
 	    recorder = new MediaRecorder();
@@ -112,10 +115,10 @@ public class GyacoService extends Service {
 	    // 指定することもできる。
 	    //
 	    // 絶対パスを使う場合は以下のようにすればよい。
-	    // String filePath = "/data/data/" + this.getPackageName() + "/files/gyaco.3gp";
+	    // String filePath = "/data/data/" + this.getPackageName() + "/files/" + Consts.LOCAL_3GP
 	    // recorder.setOutputFile(filePath);
 	    //
-	    FileOutputStream os = openFileOutput("gyaco.3gp", MODE_PRIVATE);
+	    FileOutputStream os = openFileOutput(Consts.LOCAL_3GP, MODE_PRIVATE);
 	    recorder.setOutputFile(os.getFD());
 
 	    recorder.prepare();
@@ -130,12 +133,8 @@ public class GyacoService extends Service {
 			    recorder.stop();
 			    recorder.release();
 			    recorder = null;
-
-			    File f = new File("/data/data/" + getPackageName() + "/files/gyaco.3gp");
-			    Log.v("Gyaco", "length="+f.length());
 			    try{
-				// upload(new File("/data/data/" + getPackageName() + "/files/gyaco.3gp"), "http://masui.sfc.keio.ac.jp/gyaco/upload");
-				upload_local("gyaco.3gp", "http://masui.sfc.keio.ac.jp/gyaco/upload");
+				upload_local(Consts.LOCAL_3GP, Consts.UPLOAD_URL);
 			    }
 			    catch(Exception e){
 				e.printStackTrace();
@@ -178,7 +177,6 @@ public class GyacoService extends Service {
 	    Log.v("Gyaco","upload....");
             HttpClient httpClient = new DefaultHttpClient();
             HttpPost post = new HttpPost(uri);
-                         
             MultipartEntity entity = new MultipartEntity(HttpMultipartMode.BROWSER_COMPATIBLE);
             entity.addPart("file", new FileBody(file));
             post.setEntity(entity);
@@ -191,25 +189,23 @@ public class GyacoService extends Service {
         }
     }
 
-    FileInputStream fs = null;
-
-    private void play(){
-	/* MediaPlayer */ player = new MediaPlayer();
+    private void play(String localfile){
+	player = new MediaPlayer();
 	player.setOnCompletionListener(new OnCompletionListener(){
 		@Override
 		    public void onCompletion(MediaPlayer player) {
 		    try {
 			player.release();
-			fs.close();
+			playerStream.close();
 		    }
 		    catch(Exception e){
 		    }
 		}
 	    });
 	try {
-	    fs = openFileInput(Consts.FILENAME);
-	    if(fs != null){
-		player.setDataSource(fs.getFD());
+	    playerStream = openFileInput(localfile);
+	    if(playerStream != null){
+		player.setDataSource(playerStream.getFD());
 		player.prepare();
 		player.start();
 	    }
@@ -218,27 +214,15 @@ public class GyacoService extends Service {
 	}	
     }
 
-    private void downloadAndPlay(){
-	//
-	// ネットが使える環境では新しい音声があればダウンロードする
-	//
-	if(checkConnectionStatus()){
-	    if(isDataObsolete()){
-		download();
-	    }
-	}
-	play();
-    }
-
-    private void download() {
+    private void download(String downloadUri, String localfile) {
 	Downloader d = new Downloader();
 	d.setConnectTimeout(Consts.CONNECT_TIMEOUT); 
 	d.setReadTimeout(Consts.READ_TIMEOUT); 
 	byte[] b;
 	try {
-	    b = d.getContent(Consts.DOWNLOAD_MP3);
+	    b = d.getContent(downloadUri);
 	    Log.v("Gyaco", "Download finished");
-	    FileOutputStream fos = openFileOutput(Consts.FILENAME, MODE_PRIVATE);
+	    FileOutputStream fos = openFileOutput(localfile, MODE_PRIVATE);
 	    fos.write(b);
 	    fos.close();
 	} catch (IOException e) {
@@ -246,7 +230,7 @@ public class GyacoService extends Service {
 	}
     }
 
-    private boolean checkConnectionStatus(){
+    private boolean networkIsAvailable(){
 	ConnectivityManager conn_manager = (ConnectivityManager) this.getSystemService(CONNECTIVITY_SERVICE);
 	NetworkInfo netinfo = conn_manager.getActiveNetworkInfo();
 	if(netinfo != null && netinfo.isConnected()){
@@ -255,19 +239,21 @@ public class GyacoService extends Service {
 	return false;
     }
 
-    private boolean isDataObsolete() {
+    private static long lastModifiedDate = 0;
+
+    private void downloadIfDataIsObsolete(String downloadUri, String localfile){
 	Downloader d = new Downloader();
 	d.setConnectTimeout(Consts.CONNECT_TIMEOUT); 
 	d.setReadTimeout(Consts.READ_TIMEOUT);
 	long date = 0;
 	try {
-	    date  = d.getLastModified(Consts.DOWNLOAD_MP3);
+	    date  = d.getLastModified(downloadUri);
 	} catch (IOException e) {
 	    e.printStackTrace();
 	}
-	if(date != this.lastmodified){
-	    return true;
+	if(date != lastModifiedDate){
+	    download(downloadUri,localfile);
+	    lastModifiedDate = date;
 	}
-	return false;
     }
 }

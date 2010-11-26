@@ -19,10 +19,10 @@ import android.content.*;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.wifi.WifiManager;
+import android.net.Uri;
 import android.os.IBinder;
 import android.util.Log;
 import android.widget.RemoteViews;
-import android.widget.Toast;
 
 import android.os.Handler;
 import android.media.MediaPlayer;
@@ -37,19 +37,21 @@ public class GyacoService extends Service {
     private static final String ACTION_PLAY = "com.pitecan.GyacoService.ACTION_PLAY";
     private static final String ACTION_REC = "com.pitecan.GyacoService.ACTION_REC";
 
-    private static MediaPlayer mp;
+    private static MediaPlayer player;
+    private static MediaRecorder recorder;
     private long lastmodified = 0;
-
-    private MediaRecorder recorder;
 
     //サービス開始時に呼ばれる
     @Override
 	public void onStart(Intent intent,int startId) {
 	super.onStart(intent, startId);
 	Log.v("Gyaco", "Widget onStart");
+
 	//リモートビューの取得
+	// リモートビューというのはWidgetのビューのこと
 	AppWidgetManager manager=AppWidgetManager.getInstance(this);
 	RemoteViews view=new RemoteViews(getPackageName(),R.layout.gyaco);
+
 	if (ACTION_PLAY.equals(intent.getAction())) {
 	    play(view);
 	}
@@ -68,6 +70,15 @@ public class GyacoService extends Service {
 	newintent2.setAction(ACTION_REC);
 	PendingIntent pending2=PendingIntent.getService(this,0,newintent2,0);
 	view.setOnClickPendingIntent(R.id.button2,pending2);
+	
+	//button3とボタンクリックイベントの関連付け
+	// ブラウザを呼び出す
+	// https://groups.google.com/group/android-sdk-japan/browse_thread/thread/fd069d05bcdfd2b3?hl=ja
+	// http://www.developer.com/ws/article.php/10927_3837531_1/Handling-User-Interaction-with-Android-App-Widgets.htm
+	//
+	Intent newintent3 = new Intent(Intent.ACTION_VIEW, Uri.parse("http://pitecan.com/"));
+	PendingIntent pending3 = PendingIntent.getActivity(this, 0, newintent3, 0);
+	view.setOnClickPendingIntent(R.id.button3, pending3); 
 	
 	//ホームウィジェットの更新
 	ComponentName widget=new ComponentName(this,Gyaco.class);
@@ -90,19 +101,26 @@ public class GyacoService extends Service {
     public void rec(RemoteViews view){
 	Log.v("Gyaco", "Widget onClick");
 	try{
-	    this.recorder = new MediaRecorder();
-	    this.recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
-	    this.recorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
-	    this.recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
+	    recorder = new MediaRecorder();
+	    recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+	    recorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
+	    recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
 
 	    //String dataDir = "/data/data/" + this.getPackageName() + "/files";
 	    //String fileName = "gyaco.3gp";
-	    String filePath = "/data/data/" + this.getPackageName() + "/files/gyaco.3gp";
                     
 	    //this.recorder.setOutputFile(new File(dataDir, fileName).getAbsolutePath());
-	    this.recorder.setOutputFile(filePath);
-	    this.recorder.prepare();
-	    this.recorder.start();
+
+	    /*
+	    String filePath = "/data/data/" + this.getPackageName() + "/files/gyaco.3gp";
+	    recorder.setOutputFile(filePath);
+	    */
+	    FileOutputStream os = openFileOutput("gyaco.3gp", MODE_PRIVATE);
+	    Log.v("Gyaco","os = "  + os);
+	    recorder.setOutputFile(os.getFD());
+
+	    recorder.prepare();
+	    recorder.start();
 	    Log.v("Gyaco","record start");
 
 	    stop = new Runnable() {
@@ -130,7 +148,7 @@ public class GyacoService extends Service {
 			}
 		    }
 		};
-	    handler.postDelayed(stop, 1000);
+	    handler.postDelayed(stop, 2000);
 
 	}
 	catch(Exception e){
@@ -144,9 +162,13 @@ public class GyacoService extends Service {
 	    Log.v("Gyaco","upload....");
             HttpClient httpClient = new DefaultHttpClient();
             HttpPost post = new HttpPost(uri);
-                        
+                         
             MultipartEntity entity = new MultipartEntity(HttpMultipartMode.BROWSER_COMPATIBLE);
-            entity.addPart("file", new FileBody(file));
+            //entity.addPart("file", new FileBody(file));
+            //entity.addPart("file", new FileBody(new File("gyaco.3gp")));
+            entity.addPart("file", new FileBody(getFileStreamPath("gyaco.3gp")));
+	    
+
             post.setEntity(entity);
             post.setHeader("User-Agent", "TestAndroidApp/0.1");
             HttpResponse res = httpClient.execute(post);
@@ -157,19 +179,27 @@ public class GyacoService extends Service {
         }
     }
 
-    private void playSound(){
-	FileInputStream fs = null;
-	MediaPlayer mp = new MediaPlayer();
-	mp.setOnCompletionListener(new OnCompletionListener(){
+    FileInputStream fs = null;
+
+    private void play(){
+	/* MediaPlayer */ player = new MediaPlayer();
+	player.setOnCompletionListener(new OnCompletionListener(){
 		@Override
-		    public void onCompletion(MediaPlayer mp) {
-		}});
+		    public void onCompletion(MediaPlayer player) {
+		    try {
+			player.release();
+			fs.close();
+		    }
+		    catch(Exception e){
+		    }
+		}
+	    });
 	try {
 	    fs = openFileInput(Consts.FILENAME);
 	    if(fs != null){
-		mp.setDataSource(fs.getFD());
-		mp.prepare();
-		mp.start();
+		player.setDataSource(fs.getFD());
+		player.prepare();
+		player.start();
 	    }
 	} catch(Exception e) {
 	    e.printStackTrace();
@@ -182,7 +212,7 @@ public class GyacoService extends Service {
 		download();
 	    }
 	}
-	playSound();
+	play();
     }
 
     private void download() {

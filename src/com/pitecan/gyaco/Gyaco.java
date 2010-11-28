@@ -4,6 +4,16 @@ import android.appwidget.AppWidgetProvider;
 import android.content.Context;
 import android.content.Intent;
 
+//
+// AppWidgetのライフサイクル
+//
+//   onEnabled()    最初の起動
+//   onUpdate()     appWidgetが起動される
+//   (実行中)
+//   onDeleted()    起動したappWidgetが終了
+//   onDisabled()   すべてのappWiddgetが終了
+//
+
 //ホームウィジェット
 public class Gyaco extends AppWidgetProvider {
     //更新時に呼ばれる

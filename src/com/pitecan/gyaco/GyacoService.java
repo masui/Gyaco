@@ -1,3 +1,26 @@
+//
+// Widgetを使うには様々な技法というかバッドノウハウが必要らしい。
+// Widgetの画面は他のプロセス(ホームスクリーンプロセス)が管理しているので
+// これを操作するには「RemoteViews」というクラスを使って間接的にやるらしい。
+// http://developer.android.com/reference/android/widget/RemoteViews.html
+// これに画像を貼ることはできる
+//
+// 直接書く方法もあるのかも
+// http://stackoverflow.com/questions/2181588
+// http://android.git.kernel.org/?p=platform/frameworks/base.git;a=blob_plain;f=core/java/android/widget/AnalogClock.java;hb=HEAD
+// http://developer.android.com/guide/topics/appwidgets/index.html#CreatingLayout
+// と思ったらAnalogClockだけ許されているという話も!? 今のところよくわからない。
+//
+
+//
+// Serviceのライフサイクル
+//
+//   onCreate()    サービス起動
+//   onStart()     サービス開始
+//   (実行中)
+//   onDestroy()   サービス終了
+//
+
 package com.pitecan.gyaco;
 import java.io.*;
 import java.util.*;
@@ -36,6 +59,9 @@ public class GyacoService extends Service {
     private static FileInputStream playerStream = null;
     private static FileOutputStream recorderStream = null;
 
+    private RemoteViews remoteViews;
+
+    // context.startService(intent); により呼ばれる
     //サービス開始時に呼ばれる
     @Override
 	public void onStart(Intent intent,int startId) {
@@ -45,8 +71,9 @@ public class GyacoService extends Service {
 	//
 	// Widgetは「リモートビュー」を使うことになっているらしい
 	//
-	AppWidgetManager manager=AppWidgetManager.getInstance(this);
-	RemoteViews view=new RemoteViews(getPackageName(),R.layout.gyaco);
+	AppWidgetManager manager = AppWidgetManager.getInstance(this);
+	/* RemoteViews */ remoteViews = new RemoteViews(getPackageName(),R.layout.gyaco);
+	remoteViews.setImageViewResource(R.id.recbutton,R.drawable.rec0);
 
 	String action = intent.getAction();
 	if (ACTION_PLAY.equals(action)){
@@ -59,16 +86,16 @@ public class GyacoService extends Service {
 	}
 	
 	// playボタンクリックイベントの関連付け
-	Intent playIntent=new Intent();
+	Intent playIntent = new Intent();
 	playIntent.setAction(ACTION_PLAY);
-	PendingIntent playPendingIntent=PendingIntent.getService(this,0,playIntent,0);
-	view.setOnClickPendingIntent(R.id.playbutton,playPendingIntent);
+	PendingIntent playPendingIntent = PendingIntent.getService(this,0,playIntent,0);
+	remoteViews.setOnClickPendingIntent(R.id.playbutton,playPendingIntent);
 	
 	// recボタンクリックイベントの関連付け
-	Intent recIntent=new Intent();
+	Intent recIntent = new Intent();
 	recIntent.setAction(ACTION_REC);
-	PendingIntent recPendingIntent=PendingIntent.getService(this,0,recIntent,0);
-	view.setOnClickPendingIntent(R.id.recbutton,recPendingIntent);
+	PendingIntent recPendingIntent = PendingIntent.getService(this,0,recIntent,0);
+	remoteViews.setOnClickPendingIntent(R.id.recbutton,recPendingIntent);
 
 	//
 	// webButton とボタンクリックイベントの関連付け
@@ -79,11 +106,11 @@ public class GyacoService extends Service {
 	//
 	Intent webIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("http://pitecan.com/"));
 	PendingIntent webPendingIntent = PendingIntent.getActivity(this, 0, webIntent, 0);
-	view.setOnClickPendingIntent(R.id.webbutton, webPendingIntent); 
+	remoteViews.setOnClickPendingIntent(R.id.webbutton, webPendingIntent); 
 	
 	//ホームウィジェットの更新
-	ComponentName widget=new ComponentName(this,Gyaco.class);
-	manager.updateAppWidget(widget,view);
+	ComponentName widget = new ComponentName(this,Gyaco.class);
+	manager.updateAppWidget(widget,remoteViews);
     }
 
     @Override
@@ -98,11 +125,16 @@ public class GyacoService extends Service {
 	if(networkIsAvailable()){
 	    downloadIfDataIsObsolete(Consts.DOWNLOAD_MP3,Consts.LOCAL_MP3);
 	}
+			remoteViews = new RemoteViews(getPackageName(),R.layout.gyaco);
+			Log.v("Gyaco", "RemoteViews = "+remoteViews);
+			remoteViews.setImageViewResource(R.id.recbutton,R.drawable.rec5);
+
 	play(Consts.LOCAL_MP3);
     }
 
     private Handler handler = new Handler();
     private Runnable stop;
+    Context context = this;
 
     public void recButton(){
 	Log.v("Gyaco", "Widget onClick");
@@ -125,6 +157,9 @@ public class GyacoService extends Service {
 	    recorder.prepare();
 	    recorder.start();
 	    Log.v("Gyaco","record start");
+	    remoteViews = new RemoteViews(getPackageName(),R.layout.gyaco);
+	    Log.v("Gyaco", "RemoteViews = "+remoteViews);
+	    remoteViews.setImageViewResource(R.id.recbutton,R.drawable.rec2);
 
 	    stop = new Runnable() {
 		    public void run() {
@@ -147,6 +182,11 @@ public class GyacoService extends Service {
 			    e.printStackTrace();
 			    Log.v("Gyaco",e.toString());
 			}
+
+			AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(context);
+			remoteViews = new RemoteViews(getPackageName(),R.layout.gyaco);
+			remoteViews.setImageViewResource(R.id.recbutton,R.drawable.rec5);
+			appWidgetManager.updateAppWidget(new ComponentName(getApplicationContext(), Gyaco.class), remoteViews); 
 		    }
 		};
 	    handler.postDelayed(stop, 2000); // 2秒後に停止

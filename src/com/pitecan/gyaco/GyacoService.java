@@ -60,6 +60,7 @@ public class GyacoService extends Service {
     private static FileOutputStream recorderStream = null;
 
     private RemoteViews remoteViews;
+    AppWidgetManager manager;
 
     // context.startService(intent); により呼ばれる
     //サービス開始時に呼ばれる
@@ -71,9 +72,11 @@ public class GyacoService extends Service {
 	//
 	// Widgetは「リモートビュー」を使うことになっているらしい
 	//
-	AppWidgetManager manager = AppWidgetManager.getInstance(this);
+	/* AppWidgetManager */ manager = AppWidgetManager.getInstance(this);
 	/* RemoteViews */ remoteViews = new RemoteViews(getPackageName(),R.layout.gyaco);
+	/*
 	remoteViews.setImageViewResource(R.id.recbutton,R.drawable.rec0);
+	*/
 
 	String action = intent.getAction();
 	if (ACTION_PLAY.equals(action)){
@@ -125,77 +128,131 @@ public class GyacoService extends Service {
 	if(networkIsAvailable()){
 	    downloadIfDataIsObsolete(Consts.DOWNLOAD_MP3,Consts.LOCAL_MP3);
 	}
-			remoteViews = new RemoteViews(getPackageName(),R.layout.gyaco);
-			Log.v("Gyaco", "RemoteViews = "+remoteViews);
-			remoteViews.setImageViewResource(R.id.recbutton,R.drawable.rec5);
-
 	play(Consts.LOCAL_MP3);
     }
 
     private Handler handler = new Handler();
-    private Runnable stop;
+    private Runnable step;
     Context context = this;
 
+    int[] recIcons = {
+	R.drawable.rec0, R.drawable.rec1, R.drawable.rec2,
+	R.drawable.rec3, R.drawable.rec4, R.drawable.rec5,
+	R.drawable.rec6, R.drawable.rec7, R.drawable.rec8,
+	R.drawable.rec9, R.drawable.rec10
+    };
+    int recCount = 0;
+
     public void recButton(){
-	Log.v("Gyaco", "Widget onClick");
+	Log.v("Gyaco", "REC button clicked");
 	try{
-	    recorder = new MediaRecorder();
-	    recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
-	    recorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
-	    recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
-	    //
-	    // MediaRecorderの出力ファイルは絶対パスを利用することもできるが、
-	    // Activityのメソッドである openFileOutput() を使ってローカルファイルの出力ストリームを取得して
-	    // 指定することもできる。
-	    //
-	    // 絶対パスを使う場合は以下のようにすればよい。
-	    // String filePath = "/data/data/" + this.getPackageName() + "/files/" + Consts.LOCAL_3GP
-	    // recorder.setOutputFile(filePath);
-	    //
-	    recorderStream = openFileOutput(Consts.LOCAL_3GP, MODE_PRIVATE);
-	    recorder.setOutputFile(recorderStream.getFD());
-	    recorder.prepare();
-	    recorder.start();
-	    Log.v("Gyaco","record start");
-	    remoteViews = new RemoteViews(getPackageName(),R.layout.gyaco);
-	    Log.v("Gyaco", "RemoteViews = "+remoteViews);
-	    remoteViews.setImageViewResource(R.id.recbutton,R.drawable.rec2);
+	    if(recCount == 0){
+		recCount = 10;
+		recorder = new MediaRecorder();
+		recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+		recorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
+		recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
+		//
+		// MediaRecorderの出力ファイルは絶対パスを利用することもできるが、
+		// Activityのメソッドである openFileOutput() を使ってローカルファイルの出力ストリームを取得して
+		// 指定することもできる。
+		//
+		// 絶対パスを使う場合は以下のようにすればよい。
+		// String filePath = "/data/data/" + this.getPackageName() + "/files/" + Consts.LOCAL_3GP
+		// recorder.setOutputFile(filePath);
+		//
+		recorderStream = openFileOutput(Consts.LOCAL_3GP, MODE_PRIVATE);
+		recorder.setOutputFile(recorderStream.getFD());
+		recorder.prepare();
+		recorder.start();
+		Log.v("Gyaco","record start");
 
-	    stop = new Runnable() {
-		    public void run() {
-			handler.removeCallbacks(stop);
-			try {
-			    Log.v("Gyaco","record stop");
-			    recorder.stop();
-			    recorder.release();
-			    recorder = null;
-			    recorderStream.close();
-			    try{
-				uploadLocal(Consts.LOCAL_3GP, Consts.UPLOAD_URL);
+		//remoteViews = new RemoteViews(getPackageName(),R.layout.gyaco);
+		//remoteViews.setImageViewResource(R.id.recbutton,R.drawable.rec10); // 赤い四角を描く
+
+		/*
+		AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(context);
+		remoteViews = new RemoteViews(getPackageName(),R.layout.gyaco);
+		remoteViews.setImageViewResource(R.id.recbutton,R.drawable.rec10);
+		appWidgetManager.updateAppWidget(new ComponentName(getApplicationContext(), Gyaco.class), remoteViews); 
+		*/
+		/*
+		remoteViews.setImageViewResource(R.id.recbutton,R.drawable.rec10);
+		manager.updateAppWidget(new ComponentName(getApplicationContext(), Gyaco.class), remoteViews); 
+		*/
+		displayRecIcon(R.drawable.rec10);
+
+		step = new Runnable() {
+			public void run() {
+			    if(recCount > 0){
+				recCount--;
 			    }
-			    catch(Exception e){
-				e.printStackTrace();
-				Log.v("Gyaco",e.toString());
+
+			    int iconind = recIcons[recCount];
+			    /*
+			    AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(context);
+			    remoteViews = new RemoteViews(getPackageName(),R.layout.gyaco);
+			    remoteViews.setImageViewResource(R.id.recbutton,iconind);
+			    appWidgetManager.updateAppWidget(new ComponentName(getApplicationContext(), Gyaco.class), remoteViews); 
+			    */
+			    /*
+			    remoteViews.setImageViewResource(R.id.recbutton,iconind);
+			    manager.updateAppWidget(new ComponentName(getApplicationContext(), Gyaco.class), remoteViews); 
+			    */
+			    displayRecIcon(iconind);
+
+			    if(recCount == 0){ // 録音終了
+				handler.removeCallbacks(step);
+				try {
+				    Log.v("Gyaco","record step");
+				    recorder.stop();
+				    recorder.release();
+				    recorder = null;
+				    recorderStream.close();
+				    try{
+					uploadLocal(Consts.LOCAL_3GP, Consts.UPLOAD_URL);
+				    }
+				    catch(Exception e){
+					e.printStackTrace();
+					Log.v("Gyaco",e.toString());
+				    }
+				}
+				catch(Exception e){
+				    e.printStackTrace();
+				    Log.v("Gyaco",e.toString());
+				}
+			    }
+			    else {
+				handler.postDelayed(step, 200); // 0.2秒後にstep
 			    }
 			}
-			catch(Exception e){
-			    e.printStackTrace();
-			    Log.v("Gyaco",e.toString());
-			}
-
-			AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(context);
-			remoteViews = new RemoteViews(getPackageName(),R.layout.gyaco);
-			remoteViews.setImageViewResource(R.id.recbutton,R.drawable.rec5);
-			appWidgetManager.updateAppWidget(new ComponentName(getApplicationContext(), Gyaco.class), remoteViews); 
-		    }
-		};
-	    handler.postDelayed(stop, 2000); // 2秒後に停止
-
+		    };
+		handler.postDelayed(step, 200); // 0.2秒後にstep
+	    }
+	    else {
+		recCount = 10;
+		/*
+		AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(context);
+		remoteViews = new RemoteViews(getPackageName(),R.layout.gyaco);
+		remoteViews.setImageViewResource(R.id.recbutton,R.drawable.rec10);
+		appWidgetManager.updateAppWidget(new ComponentName(getApplicationContext(), Gyaco.class), remoteViews); 
+		*/
+		/*
+		remoteViews.setImageViewResource(R.id.recbutton,R.drawable.rec10);
+		manager.updateAppWidget(new ComponentName(getApplicationContext(), Gyaco.class), remoteViews); 
+		*/
+		displayRecIcon(R.drawable.rec10);
+	    }
 	}
 	catch(Exception e){
 	    e.printStackTrace();
 	    Log.v("Gyaco",e.toString());
 	}
+    }
+
+    public void displayRecIcon(int id){
+	remoteViews.setImageViewResource(R.id.recbutton,id);
+	manager.updateAppWidget(new ComponentName(getApplicationContext(), Gyaco.class), remoteViews); 
     }
 
     public void uploadLocal(String localfile, String uri){

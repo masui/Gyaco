@@ -72,11 +72,8 @@ public class GyacoService extends Service {
 	//
 	// Widgetは「リモートビュー」を使うことになっているらしい
 	//
-	/* AppWidgetManager */ manager = AppWidgetManager.getInstance(this);
-	/* RemoteViews */ remoteViews = new RemoteViews(getPackageName(),R.layout.gyaco);
-	/*
-	remoteViews.setImageViewResource(R.id.recbutton,R.drawable.rec0);
-	*/
+	manager = AppWidgetManager.getInstance(this);
+	remoteViews = new RemoteViews(getPackageName(),R.layout.gyaco);
 
 	String action = intent.getAction();
 	if (ACTION_PLAY.equals(action)){
@@ -133,21 +130,13 @@ public class GyacoService extends Service {
 
     private Handler handler = new Handler();
     private Runnable step;
-    Context context = this;
-
-    int[] recIcons = {
-	R.drawable.rec0, R.drawable.rec1, R.drawable.rec2,
-	R.drawable.rec3, R.drawable.rec4, R.drawable.rec5,
-	R.drawable.rec6, R.drawable.rec7, R.drawable.rec8,
-	R.drawable.rec9, R.drawable.rec10
-    };
-    int recCount = 0;
+    private Context context = this;
+    private int recCount = 0; // 録音タイマ: 10からはじめて0になると録音終了
 
     public void recButton(){
 	Log.v("Gyaco", "REC button clicked");
 	try{
 	    if(recCount == 0){
-		recCount = 10;
 		recorder = new MediaRecorder();
 		recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
 		recorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
@@ -167,39 +156,15 @@ public class GyacoService extends Service {
 		recorder.start();
 		Log.v("Gyaco","record start");
 
-		//remoteViews = new RemoteViews(getPackageName(),R.layout.gyaco);
-		//remoteViews.setImageViewResource(R.id.recbutton,R.drawable.rec10); // 赤い四角を描く
-
-		/*
-		AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(context);
-		remoteViews = new RemoteViews(getPackageName(),R.layout.gyaco);
-		remoteViews.setImageViewResource(R.id.recbutton,R.drawable.rec10);
-		appWidgetManager.updateAppWidget(new ComponentName(getApplicationContext(), Gyaco.class), remoteViews); 
-		*/
-		/*
-		remoteViews.setImageViewResource(R.id.recbutton,R.drawable.rec10);
-		manager.updateAppWidget(new ComponentName(getApplicationContext(), Gyaco.class), remoteViews); 
-		*/
-		displayRecIcon(R.drawable.rec10);
+		recCount = 10;
+		displayRecIcon();
 
 		step = new Runnable() {
 			public void run() {
 			    if(recCount > 0){
 				recCount--;
 			    }
-
-			    int iconind = recIcons[recCount];
-			    /*
-			    AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(context);
-			    remoteViews = new RemoteViews(getPackageName(),R.layout.gyaco);
-			    remoteViews.setImageViewResource(R.id.recbutton,iconind);
-			    appWidgetManager.updateAppWidget(new ComponentName(getApplicationContext(), Gyaco.class), remoteViews); 
-			    */
-			    /*
-			    remoteViews.setImageViewResource(R.id.recbutton,iconind);
-			    manager.updateAppWidget(new ComponentName(getApplicationContext(), Gyaco.class), remoteViews); 
-			    */
-			    displayRecIcon(iconind);
+			    displayRecIcon();
 
 			    if(recCount == 0){ // 録音終了
 				handler.removeCallbacks(step);
@@ -222,26 +187,16 @@ public class GyacoService extends Service {
 				    Log.v("Gyaco",e.toString());
 				}
 			    }
-			    else {
+			    else { // 録音続行
 				handler.postDelayed(step, 200); // 0.2秒後にstep
 			    }
 			}
 		    };
 		handler.postDelayed(step, 200); // 0.2秒後にstep
 	    }
-	    else {
+	    else { // 録音タイマをリセットして録音続行
 		recCount = 10;
-		/*
-		AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(context);
-		remoteViews = new RemoteViews(getPackageName(),R.layout.gyaco);
-		remoteViews.setImageViewResource(R.id.recbutton,R.drawable.rec10);
-		appWidgetManager.updateAppWidget(new ComponentName(getApplicationContext(), Gyaco.class), remoteViews); 
-		*/
-		/*
-		remoteViews.setImageViewResource(R.id.recbutton,R.drawable.rec10);
-		manager.updateAppWidget(new ComponentName(getApplicationContext(), Gyaco.class), remoteViews); 
-		*/
-		displayRecIcon(R.drawable.rec10);
+		displayRecIcon();
 	    }
 	}
 	catch(Exception e){
@@ -250,8 +205,14 @@ public class GyacoService extends Service {
 	}
     }
 
-    public void displayRecIcon(int id){
-	remoteViews.setImageViewResource(R.id.recbutton,id);
+    public void displayRecIcon(){
+	int[] recIcons = {
+	    R.drawable.rec0, R.drawable.rec1, R.drawable.rec2,
+	    R.drawable.rec3, R.drawable.rec4, R.drawable.rec5,
+	    R.drawable.rec6, R.drawable.rec7, R.drawable.rec8,
+	    R.drawable.rec9, R.drawable.rec10
+	};
+	remoteViews.setImageViewResource(R.id.recbutton,recIcons[recCount]);
 	manager.updateAppWidget(new ComponentName(getApplicationContext(), Gyaco.class), remoteViews); 
     }
 

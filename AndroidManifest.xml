@@ -20,6 +20,7 @@
                 <action android:name="com.pitecan.GyacoService.ACTION_PLAY" />
                 <action android:name="com.pitecan.GyacoService.ACTION_REC" />
                 <action android:name="com.pitecan.GyacoService.ACTION_BROWSE" />
+                <action android:name="com.pitecan.GyacoService.ACTION_DEL" />
             </intent-filter>
         </service>
     

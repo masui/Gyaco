@@ -3,6 +3,6 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:initialLayout="@layout/gyaco"
     android:minHeight="72dip"
-    android:minWidth="216dip"
+    android:minWidth="288dip"
     android:updatePeriodMillis="0">
 </appwidget-provider>

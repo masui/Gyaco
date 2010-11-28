@@ -28,6 +28,7 @@ import java.util.*;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.http.entity.mime.HttpMultipartMode;
 import org.apache.http.entity.mime.MultipartEntity;
 import org.apache.http.entity.mime.content.FileBody;
@@ -53,6 +54,7 @@ import android.media.MediaPlayer.OnCompletionListener;
 public class GyacoService extends Service {
     private static final String ACTION_PLAY = "com.pitecan.GyacoService.ACTION_PLAY";
     private static final String ACTION_REC = "com.pitecan.GyacoService.ACTION_REC";
+    private static final String ACTION_DEL = "com.pitecan.GyacoService.ACTION_DEL";
 
     private static MediaPlayer player;
     private static MediaRecorder recorder;
@@ -84,6 +86,10 @@ public class GyacoService extends Service {
 	    Log.v("Gyaco", "RecButton Click");
 	    recButton();
 	}
+	if (ACTION_DEL.equals(action)){
+	    Log.v("Gyaco", "DelButton Click");
+	    delButton();
+	}
 	
 	// playボタンクリックイベントの関連付け
 	Intent playIntent = new Intent();
@@ -108,6 +114,12 @@ public class GyacoService extends Service {
 	PendingIntent webPendingIntent = PendingIntent.getActivity(this, 0, webIntent, 0);
 	remoteViews.setOnClickPendingIntent(R.id.webbutton, webPendingIntent); 
 	
+	// delボタンクリックイベントの関連付け
+	Intent delIntent = new Intent();
+	delIntent.setAction(ACTION_DEL);
+	PendingIntent delPendingIntent = PendingIntent.getService(this,0,delIntent,0);
+	remoteViews.setOnClickPendingIntent(R.id.delbutton,delPendingIntent);
+
 	//ホームウィジェットの更新
 	ComponentName widget = new ComponentName(this,Gyaco.class);
 	manager.updateAppWidget(widget,remoteViews);
@@ -126,6 +138,15 @@ public class GyacoService extends Service {
 	    downloadIfDataIsObsolete(Consts.DOWNLOAD_MP3,Consts.LOCAL_MP3);
 	}
 	play(Consts.LOCAL_MP3);
+    }
+
+    public void delButton(){
+	try {
+	    deleteAll();
+	}
+        catch(Exception e){
+	    e.printStackTrace();
+	}
     }
 
     private Handler handler = new Handler();
@@ -214,6 +235,7 @@ public class GyacoService extends Service {
 	};
 	remoteViews.setImageViewResource(R.id.recbutton,recIcons[recCount]);
 	manager.updateAppWidget(new ComponentName(getApplicationContext(), Gyaco.class), remoteViews); 
+	// Log.v("Gyaco", "dispRecIcon(" + recCount + ")");
     }
 
     public void uploadLocal(String localfile, String uri){
@@ -242,6 +264,20 @@ public class GyacoService extends Service {
             post.setEntity(entity);
             post.setHeader("User-Agent", "TestAndroidApp/0.1");
             HttpResponse res = httpClient.execute(post);
+            Log.v("Gyaco","res = " + res.getEntity().getContent().toString());
+        }
+        catch(Exception e){
+            throw e;
+        }
+    }
+
+    public void deleteAll() throws Exception{
+        try{
+	    Log.v("Gyaco","deleting everything....");
+            HttpClient httpClient = new DefaultHttpClient();
+            HttpGet get = new HttpGet("http://masui.sfc.keio.ac.jp/gyaco/delete_all");
+            get.setHeader("User-Agent", "TestAndroidApp/0.1");
+            HttpResponse res = httpClient.execute(get);
             Log.v("Gyaco","res = " + res.getEntity().getContent().toString());
         }
         catch(Exception e){

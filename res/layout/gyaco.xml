@@ -20,4 +20,9 @@
         android:layout_height="wrap_content"
         android:src="@drawable/web"
         />
+    <ImageView android:id="@+id/delbutton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/del"
+        />
 </LinearLayout>
